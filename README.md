@@ -32,7 +32,8 @@ Repository scans are capped at 50 candidate files, 500 KB per file, and 8 MB tot
 
 - The browser UI does not upload pasted text or selected files, save reports, or execute code. Public repository requests go directly from the browser to GitHub, which may log normal request metadata.
 - The Python API does not write submitted text or downloaded repository content to disk. Keep the API on a trusted network unless placed behind authentication and access controls.
-- No VM host is connected. The Windows section is isolation guidance only; there is no automated VM launch or dynamic malware execution. For deeper review, use a disposable Windows VM you control with no shared folders, clipboard, network access, or real credentials, then revert its snapshot.
+- No VM host or other Arena agent is connected. The Windows section is guidance only; there is no automated VM launch or dynamic malware execution. For deeper review, use a disposable, patched Windows VM you control: note the sample source and SHA-256, take a clean snapshot, disable networking and host-sharing features, transfer samples only through controlled read-only media, use no real credentials, then revert or destroy the guest.
+- Never expose RDP, VNC, or VM-control ports through a public link or tunnel. If network behavior must be studied, use a private isolated lab with simulated services and experienced supervision; virtualization is not a guarantee against escape.
 - Behavior notes are conditional explanations of what a matched pattern *could* do if reached. They cannot establish whether a file is malicious or what a complete installer will do.
 
 ## Tests

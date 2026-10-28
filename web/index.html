@@ -253,13 +253,20 @@
             <span class="sandbox-state"><i></i> VM host not connected</span>
           </div>
           <div class="sandbox-content">
-            <div class="sandbox-explainer"><h3>Dynamic execution is not enabled here.</h3><p>This scanner has no VM host configured and will never launch repository files. For deeper analysis, use a disposable Windows VM or Windows Sandbox that you control.</p><a class="safe-link" href="https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/" target="_blank" rel="noreferrer">Windows Sandbox safety guidance <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7m0-7L6 10M11 9v4H3V5h4"/></svg></a></div>
+            <div class="sandbox-explainer">
+              <h3>Dynamic execution is not enabled here.</h3>
+              <p>This scanner is not connected to a VM or another Arena agent. It will never launch repository files. For deeper review, use a disposable Windows VM or Windows Sandbox that you control; virtualization reduces risk but is not a guarantee against escape.</p>
+              <div class="sandbox-warning" role="note"><strong>Keep the VM private.</strong> Do not expose RDP, VNC, or VM-control ports through a public link or tunnel. Never connect an analysis VM to your production LAN or normal accounts.</div>
+              <a class="safe-link" href="https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/" target="_blank" rel="noreferrer">Windows Sandbox safety guidance <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7m0-7L6 10M11 9v4H3V5h4"/></svg></a>
+            </div>
             <div class="sandbox-checklist">
-              <p class="checklist-title"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2 15 4v4.7c0 3.9-2.4 6.8-6 8.6-3.6-1.8-6-4.7-6-8.6V4l6-2Z"/><path d="m6.5 8.8 1.6 1.6 3.5-3.5"/></svg> Before any manual test</p>
+              <p class="checklist-title"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2 15 4v4.7c0 3.9-2.4 6.8-6 8.6-3.6-1.8-6-4.7-6-8.6V4l6-2Z"/><path d="m6.5 8.8 1.6 1.6 3.5-3.5"/></svg> Safer, isolated review</p>
               <ul>
-                <li><span>1</span> Take a clean VM snapshot; use no real accounts or secrets.</li>
-                <li><span>2</span> Disable shared folders, clipboard, and network access.</li>
-                <li><span>3</span> Revert the VM snapshot after the investigation.</li>
+                <li><span>1</span><div><strong>Record the hash.</strong> Note the sample’s source and SHA-256 using a trusted local tool; an upload report shows the hash when available. Never open it on your host.</div></li>
+                <li><span>2</span><div><strong>Prepare a disposable guest.</strong> Patch the host, hypervisor, and guest before testing; take a clean snapshot and use no real accounts or secrets.</div></li>
+                <li><span>3</span><div><strong>Cut host connections.</strong> Disable networking, shared folders, clipboard, drag-and-drop, and unnecessary device sharing. Transfer samples only through controlled read-only media.</div></li>
+                <li><span>4</span><div><strong>Observe locally.</strong> Keep logs in the guest. If network behavior must be studied, use a private lab with simulated services and experienced supervision—never public internet or a production network.</div></li>
+                <li><span>5</span><div><strong>Discard the guest.</strong> Power it off, revert the snapshot or destroy it, and do not copy suspicious binaries back to the host.</div></li>
               </ul>
             </div>
           </div>
