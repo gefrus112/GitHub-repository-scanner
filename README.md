@@ -1,40 +1,43 @@
 # Repository Safety Scanner
 
-A small, defensive scanner for suspicious files in **public GitHub repositories** and pasted source. It uses transparent static rules to flag indicators such as suspicious filenames, Discord/Telegram webhook endpoints, cryptomining strings, encoded or downloaded command execution, persistence hooks, credential-store references, reverse shells, and process-injection APIs.
+A browser-first static scanner for public GitHub repositories, pasted source, and local text files. Explainable rules flag suspicious indicators including Discord/Telegram endpoints, cryptomining strings, encoded or downloaded execution, persistence hooks, credential-store references, reverse shells, process-injection APIs, and suspicious filenames. Each finding includes a cautious behavior explanation and a review recommendation.
 
-> **Static analysis only.** This application never executes, builds, or launches code from a repository. It is not antivirus software; a finding is a lead for human review, and a clean scan does not prove that code is safe. Binary files are not analyzed.
+> **Not antivirus.** Rules are heuristics, not a malware verdict. A match needs human review, and a clean result does not prove safety. Binary executables are not analyzed or run.
 
-## Run locally
+## GitHub Pages
 
-Requires Python 3.10+ and has no third-party dependencies.
+The workflow in `.github/workflows/pages.yml` publishes the `web/` application on pushes to `main` and on manual dispatch. It publishes the scanner app rather than the repository README. After merging the workflow, check **Settings → Pages → Build and deployment** and choose **GitHub Actions** if it is not already selected. The deployed project site is `https://gefrus112.github.io/GitHub-repository-scanner/`.
+
+The Pages app runs scans in the browser. For a repository scan it reads public repository metadata, the file tree, and selected text blobs directly from `api.github.com`; pasted code and selected files stay in the browser. GitHub's unauthenticated API rate limit applies. The app asks for no GitHub token and has no database or analytics code.
+
+## Local use
+
+Requires Python 3.10+ with no third-party dependencies:
 
 ```bash
 python3 server.py
 ```
 
-Open <http://localhost:8000>. To choose another port, set `PORT`; to change the bind address, set `HOST` (default `0.0.0.0` for the Arena preview).
+Open <http://localhost:8000>. The web interface works locally and also has a small Python API for local integrations. Configure a different port with `PORT=8080 python3 server.py`; the default bind is `0.0.0.0` for the Arena preview.
 
-```bash
-PORT=8080 python3 server.py
-```
+Available same-origin endpoints:
 
-The server exposes the static web app and these same-origin endpoints:
-
-- `GET /api/health` — scanner and VM-sandbox availability.
-- `POST /api/scan/repository` — streams progress and a report as Server-Sent Events. JSON body: `{"repository":"https://github.com/owner/repo","branch":"optional-branch"}`.
+- `GET /api/health` — reports static scanner and VM-host status.
+- `POST /api/scan/repository` — streams a static GitHub repository scan as Server-Sent Events. JSON body: `{"repository":"https://github.com/owner/repo","branch":"optional-branch"}`.
 - `POST /api/scan/code` — scans pasted UTF-8 text in memory. JSON body: `{"filename":"sample.ps1","code":"..."}`.
 
-Repository scans use GitHub's public repository metadata API and a bounded archive download, so **only public repositories** are supported and GitHub's API rate limits apply. The scanner checks up to 50 common text/source/config files per repository, skips known generated/dependency folders and binary files, and caps the compressed archive at 24 MB, each file at 500 KB, and total decoded content at 8 MB. The report identifies inspected files and skip counts. These limits and the rule set are in `server.py`.
+Repository scans are capped at 50 candidate files, 500 KB per file, and 8 MB total decoded text; generated/dependency folders are excluded. The browser scanner uses GitHub's unauthenticated API, so repeated scans can reach its rate limit. Text file uploads are read locally (500 KB maximum). Binary formats are reported as unsupported rather than being treated as clean.
 
-## Safety and deployment notes
+## Safe-use and data notes
 
-- Submitted source is inspected in memory and is not written to disk by the scanner. Repository metadata is fetched from `api.github.com` and source archives from `codeload.github.com`; the scanner does not accept arbitrary remote URLs or extract archive files to disk.
-- The service makes **no VM connection** and has no dynamic-analysis feature. The Windows section in the UI is guidance only; it does not claim that a Windows virtual machine is running or provision one.
-- The server has a small per-address request limit but no user authentication. Keep it on a trusted/local network unless you put it behind an authenticated reverse proxy and apply appropriate access controls.
-- Do not use a static scan as the sole basis for trusting, blocking, or executing a repository. Review findings and the source code in context.
+- The browser UI does not upload pasted text or selected files, save reports, or execute code. Public repository requests go directly from the browser to GitHub, which may log normal request metadata.
+- The Python API does not write submitted text or downloaded repository content to disk. Keep the API on a trusted network unless placed behind authentication and access controls.
+- No VM host is connected. The Windows section is isolation guidance only; there is no automated VM launch or dynamic malware execution. For deeper review, use a disposable Windows VM you control with no shared folders, clipboard, network access, or real credentials, then revert its snapshot.
+- Behavior notes are conditional explanations of what a matched pattern *could* do if reached. They cannot establish whether a file is malicious or what a complete installer will do.
 
 ## Tests
 
 ```bash
 python3 -m unittest discover -s tests -v
+node --check web/app.js
 ```
