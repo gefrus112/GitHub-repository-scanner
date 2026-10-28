@@ -1,0 +1,6 @@
+<Configuration>
+  <VGpu>Disable</VGpu>
+  <Networking>Disable</Networking>
+  <ClipboardRedirection>Disable</ClipboardRedirection>
+  <ProtectedClient>Enable</ProtectedClient>
+</Configuration>

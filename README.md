@@ -28,6 +28,10 @@ Available same-origin endpoints:
 
 Repository scans are capped at 50 candidate files, 500 KB per file, and 8 MB total decoded text; generated/dependency folders are excluded. The browser scanner uses GitHub's unauthenticated API, so repeated scans can reach its rate limit. Text file uploads are read locally (500 KB maximum). Binary formats are reported as unsupported rather than being treated as clean.
 
+## Local Windows 11 VM tab
+
+The site includes a **Windows VM** setup tab for using the visitor’s own Windows 11 laptop—no hosted VM provider is needed. On supported Pro, Enterprise, or Education editions, download `web/windows-11-offline-sandbox.wsb` to start a blank Windows Sandbox with networking, clipboard redirection, and virtual GPU disabled. It does not map folders or auto-run files. Windows 11 Home users or users who need a persistent guest can use a locally installed hypervisor; a Windows 11 guest requires compatible hardware and a valid license. The website cannot create, start, or control a VM on the laptop, and it never transfers scan files into one.
+
 ## Safe-use and data notes
 
 - The browser UI does not upload pasted text or selected files, save reports, or execute code. Public repository requests go directly from the browser to GitHub, which may log normal request metadata.
