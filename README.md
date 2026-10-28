@@ -6,7 +6,7 @@ A browser-first static scanner for public GitHub repositories, pasted source, an
 
 ## GitHub Pages
 
-The workflow in `.github/workflows/pages.yml` publishes the `web/` application on pushes to `main` and on manual dispatch. It publishes the scanner app rather than the repository README. After merging the workflow, check **Settings → Pages → Build and deployment** and choose **GitHub Actions** if it is not already selected. The deployed project site is `https://gefrus112.github.io/GitHub-repository-scanner/`.
+The workflow in `.github/workflows/pages.yml` publishes the `web/` application on pushes to `main` and on manual dispatch. It publishes the scanner app rather than the repository README. A root `index.html` also redirects older branch-based Pages builds to `web/`, so the README is no longer the site landing page. For an Actions-only deployment, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**; the redirect also covers existing branch-based configurations. The project site is `https://gefrus112.github.io/GitHub-repository-scanner/`.
 
 The Pages app runs scans in the browser. For a repository scan it reads public repository metadata, the file tree, and selected text blobs directly from `api.github.com`; pasted code and selected files stay in the browser. GitHub's unauthenticated API rate limit applies. The app asks for no GitHub token and has no database or analytics code.
 
