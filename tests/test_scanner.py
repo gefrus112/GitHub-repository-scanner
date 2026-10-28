@@ -2,6 +2,7 @@ import io
 import json
 import threading
 import unittest
+import xml.etree.ElementTree as ET
 import zipfile
 from unittest.mock import patch
 from urllib.request import Request, urlopen
@@ -47,6 +48,17 @@ stratum+tcp://pool.example:3333
         self.assertEqual(len(server.RULES), len(ruleset["rules"]))
         self.assertEqual(server.MAX_FILES_PER_REPO_SCAN, ruleset["maxFiles"])
         self.assertTrue(all(rule.get("behavior") and rule.get("install_effect") for rule in ruleset["rules"]))
+
+    def test_windows_sandbox_profile_is_offline_and_has_no_startup_command(self):
+        profile = ET.parse(server.WEB_ROOT / "windows-11-offline-sandbox.wsb").getroot()
+        settings = {item.tag: item.text for item in profile}
+        self.assertEqual("Configuration", profile.tag)
+        self.assertEqual("Disable", settings.get("Networking"))
+        self.assertEqual("Disable", settings.get("ClipboardRedirection"))
+        self.assertEqual("Disable", settings.get("VGpu"))
+        self.assertEqual("Enable", settings.get("ProtectedClient"))
+        self.assertNotIn("MappedFolders", settings)
+        self.assertNotIn("LogonCommand", settings)
 
     def test_empty_paste_is_rejected(self):
         with self.assertRaises(server.ScanError):

@@ -6,6 +6,11 @@
     repositoryForm: document.getElementById("repository-form"),
     fileForm: document.getElementById("file-form"),
     codeForm: document.getElementById("code-form"),
+    vmPanel: document.getElementById("vm-panel"),
+    scannerLayout: document.querySelector(".scanner-layout"),
+    resultsCard: document.querySelector(".results-card"),
+    scanCardHeading: document.getElementById("scan-card-heading"),
+    scanCardDescription: document.getElementById("scan-card-description"),
     repositoryInput: document.getElementById("repository-url"),
     branchInput: document.getElementById("branch-name"),
     fileInput: document.getElementById("upload-file"),
@@ -65,9 +70,15 @@
 
   function setMode(mode) {
     currentMode = mode;
+    const isVmMode = mode === "vm";
     elements.repositoryForm.hidden = mode !== "repository";
     elements.fileForm.hidden = mode !== "file";
     elements.codeForm.hidden = mode !== "code";
+    elements.vmPanel.hidden = !isVmMode;
+    elements.resultsCard.hidden = isVmMode;
+    elements.scannerLayout.classList.toggle("is-vm-mode", isVmMode);
+    elements.scanCardHeading.textContent = isVmMode ? "Windows 11 VM setup" : "Start a scan";
+    elements.scanCardDescription.textContent = isVmMode ? "Use your own laptop; no cloud provider." : "Choose where the code lives.";
     elements.modeTabs.forEach((tab) => {
       const selected = tab.dataset.mode === mode;
       tab.classList.toggle("is-selected", selected);

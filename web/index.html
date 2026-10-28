@@ -67,10 +67,10 @@
           <section class="scan-card surface-card" aria-labelledby="scan-card-heading">
             <div class="section-card-heading">
               <div class="heading-icon blue-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.3 16 4.4v4.7c0 3.9-2.4 6.9-6 8.6-3.6-1.7-6-4.7-6-8.6V4.4l6-2.1Z"/><path d="m7.5 9.7 1.7 1.7 3.5-3.6"/></svg></div>
-              <div><h2 id="scan-card-heading">Start a scan</h2><p>Choose where the code lives.</p></div>
+              <div><h2 id="scan-card-heading">Start a scan</h2><p id="scan-card-description">Choose where the code lives.</p></div>
             </div>
 
-            <div class="mode-switch" role="tablist" aria-label="Scan source">
+            <div class="mode-switch" role="tablist" aria-label="Scanner and local VM tools">
               <button class="mode-tab is-selected" id="tab-repository" type="button" role="tab" aria-selected="true" aria-controls="repository-form" data-mode="repository">
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 3.5h6l3 3v10h-9z"/><path d="M11.5 3.5v3h3m-6 4h3m-3 3h3"/></svg> GitHub
               </button>
@@ -79,6 +79,9 @@
               </button>
               <button class="mode-tab" id="tab-code" type="button" role="tab" aria-selected="false" aria-controls="code-form" data-mode="code" tabindex="-1">
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 5-5 5 5 5m6-10 5 5-5 5m-2-12-2 14"/></svg> Paste code
+              </button>
+              <button class="mode-tab" id="tab-vm" type="button" role="tab" aria-selected="false" aria-controls="vm-panel" data-mode="vm" tabindex="-1">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="11" rx="1.5"/><path d="M7 17h6m-3-2.5V17M5.5 7h9m-9 3h5"/></svg> Windows VM
               </button>
             </div>
 
@@ -147,6 +150,57 @@
               </button>
               <p class="form-footnote"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="7" width="12" height="9" rx="2"/><path d="M6 7V5a3 3 0 0 1 6 0v2m-3 3v2"/></svg> Text is analyzed locally and is never sent to the app server.</p>
             </form>
+
+            <div id="vm-panel" class="vm-panel" role="tabpanel" aria-labelledby="tab-vm" hidden>
+              <div class="vm-panel-hero">
+                <div class="vm-panel-icon" aria-hidden="true"><svg viewBox="0 0 28 28"><rect x="3" y="4" width="22" height="16" rx="2.5"/><path d="M9 24h10m-5-4v4M7 9h14m-14 4h9"/></svg></div>
+                <div class="vm-panel-title">
+                  <p class="eyebrow small-eyebrow">LOCAL WINDOWS 11 · NO CLOUD PROVIDER</p>
+                  <h3>Use your own laptop as the VM host.</h3>
+                  <p>Run a disposable Windows environment on your device. Your laptop supplies the CPU, memory, storage, and virtualization—no hosted VM service is needed.</p>
+                </div>
+                <span class="vm-local-badge"><i></i> Local only</span>
+              </div>
+
+              <div class="vm-browser-limit" role="note">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 18 17H2l8-14.5Z"/><path d="M10 7v4m0 2.5v.1"/></svg>
+                <p><strong>This website cannot create or control a VM on your laptop.</strong> Pick a local Windows option below and open it yourself. The scanner will not send files to a VM, launch programs, or expose remote access.</p>
+              </div>
+
+              <div class="vm-method-grid">
+                <article class="vm-method-card vm-method-recommended">
+                  <div class="vm-method-meta"><span>QUICK, DISPOSABLE SESSION</span><span>PRO · ENTERPRISE · EDUCATION</span></div>
+                  <h4>Windows Sandbox</h4>
+                  <p>Windows 11’s built-in disposable desktop is ideal for a quick isolated review. It resets when closed; it is not a persistent full Windows installation.</p>
+                  <ol class="vm-steps">
+                    <li>Check your edition in <strong>Settings → System → About</strong>.</li>
+                    <li>Enable <strong>Windows Sandbox</strong> in “Turn Windows features on or off”; restart and ensure hardware virtualization is enabled.</li>
+                    <li>Download the blank profile below and open it on your Windows laptop. It starts an empty sandbox—no sample is copied or auto-run.</li>
+                  </ol>
+                  <a class="vm-download" href="windows-11-offline-sandbox.wsb" download>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m-3-3 3 3 3-3M4 14v3h12v-3"/></svg>
+                    Download offline Sandbox profile
+                  </a>
+                  <p class="vm-profile-note">The profile disables networking, clipboard redirection, and virtual GPU. It has no shared folders or startup command.</p>
+                </article>
+
+                <article class="vm-method-card">
+                  <div class="vm-method-meta"><span>FULL WINDOWS 11 GUEST</span><span>HOME OR PRO HOST</span></div>
+                  <h4>Local desktop hypervisor</h4>
+                  <p>If Sandbox is unavailable (including Windows 11 Home) or you need a persistent Windows 11 guest, install a trusted desktop hypervisor locally and create the VM from official Windows installation media.</p>
+                  <div class="vm-requirements">
+                    <div><span>01</span><p><strong>Your hardware</strong><br>CPU virtualization enabled in UEFI/BIOS, enough RAM and disk space.</p></div>
+                    <div><span>02</span><p><strong>Your Windows guest</strong><br>A valid Windows license and a VM configured to meet Windows 11 requirements.</p></div>
+                    <div><span>03</span><p><strong>Your isolation</strong><br>Disable networking and host sharing; take a clean snapshot before any review.</p></div>
+                  </div>
+                </article>
+              </div>
+
+              <div class="vm-panel-footer">
+                <span><i></i> Static scan first · No code execution from this page</span>
+                <a href="#sandbox">Read the isolation checklist below</a>
+              </div>
+            </div>
           </section>
 
           <section class="results-card surface-card" aria-labelledby="results-heading" aria-live="polite">
