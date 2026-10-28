@@ -39,6 +39,14 @@ stratum+tcp://pool.example:3333
         self.assertEqual("High", report["summary"]["risk_label"])
         self.assertEqual(["sample.cpp"], report["scanned_files"])
         self.assertEqual("critical", report["findings"][0]["severity"])
+        self.assertTrue(report["findings"][0]["behavior"])
+        self.assertTrue(report["findings"][0]["install_effect"])
+
+    def test_rules_are_shared_with_the_pages_scanner(self):
+        ruleset = json.loads((server.WEB_ROOT / "rules.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(server.RULES), len(ruleset["rules"]))
+        self.assertEqual(server.MAX_FILES_PER_REPO_SCAN, ruleset["maxFiles"])
+        self.assertTrue(all(rule.get("behavior") and rule.get("install_effect") for rule in ruleset["rules"]))
 
     def test_empty_paste_is_rejected(self):
         with self.assertRaises(server.ScanError):

@@ -22,253 +22,23 @@ ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
 MAX_BODY_BYTES = 1_500_000
 MAX_SNIPPET_CHARS = 240
-MAX_CODE_CHARS = 250_000
-MAX_FILES_PER_REPO_SCAN = 50
-MAX_BLOB_BYTES = 500_000
-MAX_TOTAL_BYTES = 8_000_000
-MAX_ARCHIVE_BYTES = 24_000_000
 MAX_GITHUB_RESPONSE_BYTES = 2_000_000
 GITHUB_API = "https://api.github.com"
-SUSPICIOUS_FILENAME = re.compile(
-    r"(?:^|[-_.\s])(?:stealer|keylogger|keylog|cryptominer|miner|trojan|rat|webshell|crypter|injector|dropper|payload|redline)(?:[-_.\s]|$)",
-    re.IGNORECASE,
-)
-
-# These are intentionally explainable heuristics, not a malware verdict or AV engine.
-RULES: list[dict[str, Any]] = [
-    {
-        "id": "discord-webhook",
-        "title": "Discord webhook endpoint",
-        "severity": "high",
-        "category": "Webhook / data transfer",
-        "pattern": re.compile(
-            r"https?://(?:(?:canary|ptb)\.)?discord(?:app)?\.com/api/webhooks/\d{6,}/[A-Za-z0-9._-]{12,}",
-            re.IGNORECASE,
-        ),
-        "summary": "A hard-coded Discord webhook can be used to send collected data out of the repository.",
-        "recommendation": "Check who owns the webhook, what data reaches it, and whether the endpoint is expected. Revoke any exposed webhook token.",
-    },
-    {
-        "id": "telegram-bot-exfiltration",
-        "title": "Telegram bot API endpoint",
-        "severity": "high",
-        "category": "Webhook / data transfer",
-        "pattern": re.compile(
-            r"https?://api\.telegram\.org/bot[^/\s\"'`]+/(?:sendMessage|sendDocument|sendPhoto|sendAudio|sendVideo)",
-            re.IGNORECASE,
-        ),
-        "summary": "A Telegram bot endpoint can be used as a covert channel for sending data or files.",
-        "recommendation": "Trace the data passed to this request and verify that the bot and recipient are authorized.",
-    },
-    {
-        "id": "crypto-miner",
-        "title": "Cryptomining indicator",
-        "severity": "high",
-        "category": "Cryptomining",
-        "pattern": re.compile(
-            r"(?:stratum\+(?:tcp|ssl)://|\bxmrig\b|\bcoinhive\b|\bcryptonight\b|\brandomx\b)",
-            re.IGNORECASE,
-        ),
-        "summary": "A mining protocol, miner name, or mining algorithm is referenced.",
-        "recommendation": "Inspect the surrounding code for unauthorized mining, pool connections, and resource use.",
-    },
-    {
-        "id": "encoded-powershell",
-        "title": "Encoded PowerShell command",
-        "severity": "high",
-        "category": "Obfuscation / execution",
-        "pattern": re.compile(
-            r"\bpowershell(?:\.exe)?\b[^\r\n]{0,140}-(?:e|enc|encodedcommand)\s+[A-Za-z0-9+/=]{20,}",
-            re.IGNORECASE,
-        ),
-        "summary": "PowerShell is launched with a long encoded command, a technique that can conceal behavior.",
-        "recommendation": "Do not execute it. Decode and review the command in an isolated, offline analysis environment.",
-    },
-    {
-        "id": "download-and-execute",
-        "title": "Download followed by execution",
-        "severity": "high",
-        "category": "Downloader / execution",
-        "pattern": re.compile(
-            r"(?:(?:invoke-webrequest|\biwr\b|downloadstring|start-bitstransfer|\bcurl\b|\bwget\b)[^\r\n]{0,180}(?:\biex\b|invoke-expression|\|\s*(?:sh|bash|pwsh|powershell)))",
-            re.IGNORECASE,
-        ),
-        "summary": "A network download appears connected to a command interpreter or dynamic execution.",
-        "recommendation": "Follow the downloaded content and verify its source and integrity before allowing any execution.",
-    },
-    {
-        "id": "dynamic-base64-execution",
-        "title": "Obfuscated content passed to an execution function",
-        "severity": "high",
-        "category": "Obfuscation / execution",
-        "pattern": re.compile(
-            r"(?:(?:\beval\b|\bexec\b|invoke-expression|\biex\b)[^\r\n]{0,120}(?:atob|b64decode|frombase64string)|(?:atob|b64decode|frombase64string)\s*\([^\r\n]{0,120}(?:\beval\b|\bexec\b|\biex\b))",
-            re.IGNORECASE,
-        ),
-        "summary": "Base64-decoded or browser-decoded text is near a dynamic execution call.",
-        "recommendation": "Treat the decoded content as untrusted and inspect it without running it.",
-    },
-    {
-        "id": "php-webshell",
-        "title": "PHP web-shell pattern",
-        "severity": "critical",
-        "category": "Remote command execution",
-        "pattern": re.compile(
-            r"(?:eval\s*\(\s*base64_decode\s*\(|assert\s*\(\s*\$_(?:GET|POST|REQUEST)|(?:passthru|shell_exec|system)\s*\(\s*\$_(?:GET|POST|REQUEST))",
-            re.IGNORECASE,
-        ),
-        "summary": "Request-controlled input appears to reach a PHP execution primitive or encoded payload.",
-        "recommendation": "Do not expose this file to a web server. Review the full request-to-execution path and remove unauthorized access.",
-    },
-    {
-        "id": "process-injection",
-        "title": "Process injection API",
-        "severity": "critical",
-        "category": "Process injection",
-        "pattern": re.compile(
-            r"\b(?:VirtualAllocEx|WriteProcessMemory|CreateRemoteThread|NtCreateThreadEx)\b",
-            re.IGNORECASE,
-        ),
-        "summary": "A Windows API commonly associated with writing into or starting code inside another process is present.",
-        "recommendation": "Confirm this is required, authorized software behavior; inspect surrounding code and its origin carefully.",
-    },
-    {
-        "id": "keylogger-hook",
-        "title": "Keyboard capture hook",
-        "severity": "high",
-        "category": "Credential / input capture",
-        "pattern": re.compile(
-            r"\b(?:SetWindowsHookEx(?:A|W)?|GetAsyncKeyState|keylogger)\b|pynput\.keyboard|keyboard\.Listener",
-            re.IGNORECASE,
-        ),
-        "summary": "A keyboard capture API or keylogger marker is present.",
-        "recommendation": "Verify that keystrokes are not recorded or transmitted without the user's informed consent.",
-    },
-    {
-        "id": "browser-credential-store",
-        "title": "Browser credential-store access",
-        "severity": "high",
-        "category": "Credential theft",
-        "pattern": re.compile(
-            r"(?:[\\/]+Google[\\/]+Chrome[\\/]+User Data[\\/]+(?:Default[\\/]+)?(?:Login Data|Local State)|[\\/]+Mozilla[\\/]+Firefox[\\/]+Profiles[\\/]+[^\s\"']+[\\/]+(?:key4\.db|logins\.json)|\b(?:Login Data|key4\.db|logins\.json)\b)",
-            re.IGNORECASE,
-        ),
-        "summary": "A browser password or cookie database path is referenced.",
-        "recommendation": "Check whether the file is being accessed for a legitimate migration or backup, and whether its contents leave the machine.",
-    },
-    {
-        "id": "discord-token-storage",
-        "title": "Discord local-token storage reference",
-        "severity": "high",
-        "category": "Credential theft",
-        "pattern": re.compile(
-            r"(?:discord[^\r\n]{0,100}(?:leveldb|local storage)|(?:leveldb|local storage)[^\r\n]{0,100}discord)",
-            re.IGNORECASE,
-        ),
-        "summary": "Discord client token-storage locations are referenced.",
-        "recommendation": "Inspect for token harvesting and outbound transfer; rotate credentials if a token may have been exposed.",
-    },
-    {
-        "id": "wallet-secret-theft",
-        "title": "Wallet recovery-secret handling",
-        "severity": "high",
-        "category": "Crypto wallet theft",
-        "pattern": re.compile(
-            r"(?:(?:seed phrase|recovery phrase|mnemonic|private key)[^\r\n]{0,100}(?:wallet|webhook|discord|send|steal|upload|post)|(?:wallet|crypto)[^\r\n]{0,100}(?:seed phrase|recovery phrase|mnemonic|private key))",
-            re.IGNORECASE,
-        ),
-        "summary": "Wallet recovery phrases or private keys appear near transfer or collection logic.",
-        "recommendation": "Never enter a real recovery phrase. Verify the code's purpose and assume any exposed secret is compromised.",
-    },
-    {
-        "id": "reverse-shell",
-        "title": "Reverse-shell command pattern",
-        "severity": "critical",
-        "category": "Remote command execution",
-        "pattern": re.compile(
-            r"(?:bash\s+-i\s+>&\s*/dev/tcp/|\bnc(?:at)?\s+-e\s+/bin/(?:ba)?sh|\bsocket\.socket\s*\([^\r\n]{0,100}\)\s*\.\s*connect\s*\()",
-            re.IGNORECASE,
-        ),
-        "summary": "A shell or socket appears configured to call back to a remote host.",
-        "recommendation": "Do not run the file. Confirm whether remote command access is intentional and restrict network exposure.",
-    },
-    {
-        "id": "windows-persistence",
-        "title": "Windows autorun or scheduled-task persistence",
-        "severity": "medium",
-        "category": "Persistence",
-        "pattern": re.compile(
-            r"(?:HKEY_CURRENT_USER[\\/]+Software[\\/]+Microsoft[\\/]+Windows[\\/]+CurrentVersion[\\/]+Run|HKCU[\\/]+Software[\\/]+Microsoft[\\/]+Windows[\\/]+CurrentVersion[\\/]+Run|schtasks(?:\.exe)?\s+/create|[\\/]+Startup[\\/]+)",
-            re.IGNORECASE,
-        ),
-        "summary": "A registry autorun location, Startup folder, or scheduled-task creation command is referenced.",
-        "recommendation": "Check what is being made persistent, whether the user is informed, and how it can be removed.",
-    },
-    {
-        "id": "hidden-powershell",
-        "title": "Hidden PowerShell window",
-        "severity": "medium",
-        "category": "Stealth / execution",
-        "pattern": re.compile(
-            r"\bpowershell(?:\.exe)?\b[^\r\n]{0,100}(?:-windowstyle\s+hidden|-w\s+hidden)",
-            re.IGNORECASE,
-        ),
-        "summary": "PowerShell is started with its window hidden, which can conceal activity from the user.",
-        "recommendation": "Inspect the command and its parent process; legitimate administration tools should document this behavior.",
-    },
-    {
-        "id": "ransomware-or-wipe-command",
-        "title": "Destructive or shadow-copy deletion command",
-        "severity": "high",
-        "category": "Destructive behavior",
-        "pattern": re.compile(
-            r"(?:vssadmin(?:\.exe)?\s+delete\s+shadows|wmic\s+shadowcopy\s+delete|cipher(?:\.exe)?\s+/w:|format\s+[a-z]:\s|remove-item[^\r\n]{0,100}-recurse[^\r\n]{0,100}-force)",
-            re.IGNORECASE,
-        ),
-        "summary": "A command can remove recovery data or recursively delete files.",
-        "recommendation": "Confirm this destructive operation is explicitly intended and protected by backups and authorization.",
-    },
-    {
-        "id": "package-install-hook",
-        "title": "Package install lifecycle hook",
-        "severity": "low",
-        "category": "Install-time behavior",
-        "pattern": re.compile(r"[\"'](?:preinstall|install|postinstall)[\"']\s*:", re.IGNORECASE),
-        "summary": "A package lifecycle script runs automatically during installation; this is common but deserves review.",
-        "recommendation": "Inspect the exact command and any files or network locations it invokes before installing the package.",
-    },
-]
-
-SCANNABLE_SUFFIXES = {
-    ".py", ".pyw", ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".vue", ".svelte",
-    ".php", ".phtml", ".rb", ".go", ".rs", ".java", ".kt", ".kts", ".scala", ".groovy",
-    ".c", ".h", ".cc", ".cpp", ".hpp", ".cs", ".fs", ".vb", ".ps1", ".psm1", ".psd1",
-    ".bat", ".cmd", ".vbs", ".vbe", ".hta", ".sh", ".bash", ".zsh", ".fish", ".pl", ".pm",
-    ".lua", ".r", ".sql", ".html", ".htm", ".xml", ".xsl", ".svg", ".json", ".jsonc", ".ipynb",
-    ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf", ".properties", ".env", ".txt", ".md",
-    ".rst", ".lock", ".make", ".gradle", ".tf", ".hcl", ".dockerignore", ".gitignore",
-    ".swift", ".m", ".mm", ".dart", ".ex", ".exs", ".erl", ".hrl", ".clj", ".cljs", ".cljc",
-    ".hs", ".lhs", ".ml", ".mli", ".f", ".f90", ".pas", ".pp", ".asm", ".sv", ".scss",
-    ".css", ".less", ".map", ".resx", ".csproj", ".sln", ".service", ".desktop", ".plist",
-    ".reg", ".wsf", ".wsh", ".inf", ".manifest", ".config", ".list", ".aspx", ".jsp", ".jspx",
-    ".ejs", ".pug", ".hbs", ".liquid",
-}
-SCANNABLE_BASENAMES = {
-    "dockerfile", "makefile", "gemfile", "rakefile", "procfile", "justfile", "cmakelists.txt",
-    "readme", "license", "licence", "notice", "contributing", "changelog", "changes", "authors",
-    "copying", "todo", "version", "entrypoint", "install", "setup", "start", "run", "update",
-    ".env", ".env.example", ".env.sample", ".npmrc", ".pypirc", ".dockerignore", ".editorconfig",
-    ".gitattributes", ".gitmodules", "requirements.txt", "pyproject.toml", "package.json",
-    "composer.json", "go.mod", "cargo.toml",
-}
-IGNORED_DIRECTORY_NAMES = {
-    ".git", "node_modules", "vendor", "dist", "build", "target", "coverage", ".next",
-    ".nuxt", ".venv", "venv", "__pycache__", "site-packages",
-}
-SCRIPT_SUFFIXES = {
-    ".py", ".pyw", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".php", ".ps1", ".psm1",
-    ".bat", ".cmd", ".vbs", ".vbe", ".hta", ".sh", ".bash", ".zsh", ".rb", ".pl",
-}
+RULESET = json.loads((WEB_ROOT / "rules.json").read_text(encoding="utf-8"))
+MAX_CODE_CHARS = int(RULESET["maxCodeChars"])
+MAX_FILES_PER_REPO_SCAN = int(RULESET["maxFiles"])
+MAX_BLOB_BYTES = int(RULESET["maxFileBytes"])
+MAX_TOTAL_BYTES = int(RULESET["maxTotalBytes"])
+MAX_ARCHIVE_BYTES = int(RULESET["maxArchiveBytes"])
+SUSPICIOUS_FILENAME = re.compile(RULESET["suspiciousFilenamePattern"], re.IGNORECASE)
+SCANNABLE_SUFFIXES = set(RULESET["scannableSuffixes"])
+SCANNABLE_BASENAMES = set(RULESET["scannableBasenames"])
+IGNORED_DIRECTORY_NAMES = set(RULESET["ignoredDirectoryNames"])
+SCRIPT_SUFFIXES = set(RULESET["scriptSuffixes"])
+RULES: list[dict[str, Any]] = []
+for _rule in RULESET["rules"]:
+    flags = re.IGNORECASE if "i" in _rule.get("flags", "") else 0
+    RULES.append({**_rule, "pattern": re.compile(_rule["pattern"], flags)})
 SEVERITY_WEIGHT = {"critical": 45, "high": 30, "medium": 15, "low": 5}
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
@@ -307,6 +77,8 @@ def suspicious_filename_finding(path: str) -> dict[str, Any] | None:
         "line": 1,
         "evidence": _redact_evidence(f"Filename: {filename}"),
         "summary": "The filename contains a term often associated with malware. A name alone is a weak signal, not proof of malicious behavior.",
+        "behavior": "A filename has no execution behavior by itself; this match only indicates a word worth reviewing.",
+        "install_effect": "No effect can be inferred from a filename. Inspect the file before opening or installing it.",
         "recommendation": "Review the file contents and provenance; do not judge safety by filename alone.",
     }
 
@@ -328,6 +100,8 @@ def analyze_text(text: str, path: str = "pasted-snippet.txt") -> list[dict[str, 
                         "line": line_number,
                         "evidence": _redact_evidence(line),
                         "summary": rule["summary"],
+                        "behavior": rule["behavior"],
+                        "install_effect": rule["install_effect"],
                         "recommendation": rule["recommendation"],
                     }
                 )
@@ -731,7 +505,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        self.send_header("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://api.github.com; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
         super().end_headers()
 
     def log_message(self, fmt: str, *args: Any) -> None:

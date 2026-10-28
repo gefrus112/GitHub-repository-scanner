@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#0b1020">
   <meta name="description" content="Static, defensive checks for suspicious files in public GitHub repositories.">
   <title>Repository Safety Scanner</title>
-  <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -44,11 +44,11 @@
           <div class="hero-copy">
             <p class="eyebrow"><span class="eyebrow-line"></span> DEFENSIVE CODE REVIEW</p>
             <h1 id="hero-title">Look before<br class="mobile-break"> you launch.</h1>
-            <p class="hero-description">Inspect public GitHub repositories or pasted source for suspicious behavior—without running a single line.</p>
+            <p class="hero-description">Inspect public GitHub repositories, uploaded text, or pasted source for suspicious behavior—without running a single line.</p>
             <div class="hero-tags" aria-label="Scanner capabilities">
-              <span><i class="tag-dot dot-blue"></i> GitHub public repos</span>
-              <span><i class="tag-dot dot-violet"></i> Heuristic detection</span>
-              <span><i class="tag-dot dot-green"></i> No code execution</span>
+              <span><i class="tag-dot dot-blue"></i> Public GitHub repos</span>
+              <span><i class="tag-dot dot-violet"></i> Local file checks</span>
+              <span><i class="tag-dot dot-green"></i> Source stays in browser</span>
             </div>
           </div>
           <div class="hero-art" aria-hidden="true">
@@ -71,10 +71,13 @@
             </div>
 
             <div class="mode-switch" role="tablist" aria-label="Scan source">
-              <button class="mode-tab is-selected" id="tab-repository" type="button" role="tab" aria-selected="true" aria-controls="repository-panel" data-mode="repository">
-                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 3.5h6l3 3v10h-9z"/><path d="M11.5 3.5v3h3m-6 4h3m-3 3h3"/></svg> GitHub repository
+              <button class="mode-tab is-selected" id="tab-repository" type="button" role="tab" aria-selected="true" aria-controls="repository-form" data-mode="repository">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 3.5h6l3 3v10h-9z"/><path d="M11.5 3.5v3h3m-6 4h3m-3 3h3"/></svg> GitHub
               </button>
-              <button class="mode-tab" id="tab-code" type="button" role="tab" aria-selected="false" aria-controls="code-panel" data-mode="code">
+              <button class="mode-tab" id="tab-file" type="button" role="tab" aria-selected="false" aria-controls="file-form" data-mode="file" tabindex="-1">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m-3-3 3 3 3-3M4 13v3h12v-3"/></svg> Upload file
+              </button>
+              <button class="mode-tab" id="tab-code" type="button" role="tab" aria-selected="false" aria-controls="code-form" data-mode="code" tabindex="-1">
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 5-5 5 5 5m6-10 5 5-5 5m-2-12-2 14"/></svg> Paste code
               </button>
             </div>
@@ -95,14 +98,34 @@
 
               <div class="scan-scope">
                 <div class="scope-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 3h8l4 4v10H4z"/><path d="M12 3v4h4m-9 3h6m-6 3h6"/></svg></div>
-                <p><strong>Scan scope</strong><span>50 files max · 500 KB/file · 24 MB archive</span><span>Binary files are skipped, never executed</span></p>
+                <p><strong>Scan scope</strong><span>Up to 50 text/source files · 500 KB each</span><span>GitHub’s public API limits apply</span></p>
               </div>
 
               <button class="primary-button" type="submit" id="scan-repository-button">
                 <span class="button-label">Scan repository</span>
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 10h12m-5-5 5 5-5 5"/></svg>
               </button>
-              <p class="form-footnote"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.2 15 4v4.7c0 3.9-2.4 6.8-6 8.6-3.6-1.8-6-4.7-6-8.6V4l6-1.8Z"/><path d="m6.5 8.8 1.6 1.6 3.5-3.5"/></svg> Source is read from GitHub and inspected in memory. Nothing is executed.</p>
+              <p class="form-footnote"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.2 15 4v4.7c0 3.9-2.4 6.8-6 8.6-3.6-1.8-6-4.7-6-8.6V4l6-1.8Z"/><path d="m6.5 8.8 1.6 1.6 3.5-3.5"/></svg> Public source is fetched directly from GitHub into this browser. Nothing is executed.</p>
+            </form>
+
+            <form id="file-form" class="scan-form" role="tabpanel" aria-labelledby="tab-file" hidden>
+              <label class="field-label" for="upload-file">Choose a file to inspect <span class="required-mark">*</span></label>
+              <label class="upload-dropzone" for="upload-file" id="upload-dropzone">
+                <input id="upload-file" type="file" aria-label="Choose a file to scan">
+                <span class="upload-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m-4 4 4-4 4 4M5 14v5h14v-5"/></svg></span>
+                <span class="upload-copy"><strong id="upload-title">Drop a file here or browse</strong><small id="upload-subtitle">Text and source files · max 500 KB · stays on this device</small></span>
+                <span class="browse-button">Browse</span>
+              </label>
+              <div class="upload-note"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.2 15 4v4.7c0 3.9-2.4 6.8-6 8.6-3.6-1.8-6-4.7-6-8.6V4l6-1.8Z"/><path d="m6.5 8.8 1.6 1.6 3.5-3.5"/></svg><span>Files are inspected in this browser tab only. Binary files cannot be analyzed by text signatures.</span></div>
+              <div class="scan-scope compact-scope">
+                <div class="scope-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 16 4.7v4.4c0 3.9-2.4 6.8-6 8.4-3.6-1.6-6-4.5-6-8.4V4.7l6-2.2Z"/></svg></div>
+                <p><strong>No install or execution</strong><span>Local static scan · nothing uploaded</span></p>
+              </div>
+              <button class="primary-button" type="submit" id="scan-file-button" disabled>
+                <span class="button-label">Scan selected file</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 10h12m-5-5 5 5-5 5"/></svg>
+              </button>
+              <p class="form-footnote"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="7" width="12" height="9" rx="2"/><path d="M6 7V5a3 3 0 0 1 6 0v2m-3 3v2"/></svg> The app never stores or sends the selected file.</p>
             </form>
 
             <form id="code-form" class="scan-form" role="tabpanel" aria-labelledby="tab-code" hidden>
@@ -113,7 +136,7 @@
               </div>
               <label class="field-label code-label" for="code-input">Paste source or text <span class="required-mark">*</span></label>
               <textarea id="code-input" spellcheck="false" placeholder="Paste untrusted source code here…" required></textarea>
-              <p class="field-hint">Up to 250,000 characters. Pasted content is not saved.</p>
+              <p class="field-hint">Up to 250,000 characters. Text stays in this browser tab.</p>
               <div class="scan-scope compact-scope">
                 <div class="scope-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 16 4.7v4.4c0 3.9-2.4 6.8-6 8.4-3.6-1.6-6-4.5-6-8.4V4.7l6-2.2Z"/></svg></div>
                 <p><strong>Safe by design</strong><span>Static pattern checks only · no code execution</span></p>
@@ -122,7 +145,7 @@
                 <span class="button-label">Scan pasted code</span>
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 10h12m-5-5 5 5-5 5"/></svg>
               </button>
-              <p class="form-footnote"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="7" width="12" height="9" rx="2"/><path d="M6 7V5a3 3 0 0 1 6 0v2m-3 3v2"/></svg> Text is checked in memory and is not stored by this app.</p>
+              <p class="form-footnote"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="7" width="12" height="9" rx="2"/><path d="M6 7V5a3 3 0 0 1 6 0v2m-3 3v2"/></svg> Text is analyzed locally and is never sent to the app server.</p>
             </form>
           </section>
 
@@ -162,7 +185,7 @@
             <div id="scan-results" class="scan-results" hidden>
               <div class="report-source-row">
                 <div class="source-repo-icon"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5h6l3 3v10H5v-13z"/><path d="M12 3.5v3h3m-7 4h4m-4 3h4"/></svg></div>
-                <div class="report-source-text"><strong id="report-source">Repository</strong><span id="report-branch">Branch: main</span></div>
+                <div class="report-source-text"><strong id="report-source">Repository</strong><span id="report-branch">Branch: main</span><span id="report-file-hash" class="file-hash" hidden></span></div>
                 <span class="complete-badge"><i></i> Complete</span>
               </div>
 
@@ -197,7 +220,7 @@
               </details>
 
               <div id="warnings-list" class="warnings-list"></div>
-              <p class="report-disclaimer">Heuristic static scan only. Findings need human review; clean results do not prove a repository is safe.</p>
+              <p class="report-disclaimer">Heuristic static scan only. Behavior notes are conditional, not a verdict; clean results do not prove a repository is safe.</p>
             </div>
           </section>
         </section>
@@ -213,6 +236,12 @@
             <article class="coverage-card"><span class="coverage-icon icon-violet"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 16.5 6v8L10 17.5 3.5 14V6L10 2.5Z"/><path d="M7 8.2h.1m5.8 0h.1M7.5 11c.8 1.2 1.6 1.6 2.5 1.6s1.7-.4 2.5-1.6"/></svg></span><div><h3>Data theft & webhooks</h3><p>Discord/Telegram endpoints, browser credential stores, and wallet secrets.</p></div><span class="coverage-number">03</span></article>
             <article class="coverage-card"><span class="coverage-icon icon-cyan"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v16m4-13H8a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H6"/><path d="m6 5 2-2m-2 2 2 2m6 8 2 2m-2-2-2 2"/></svg></span><div><h3>Mining & destructive actions</h3><p>Miner signatures, pool protocols, recovery deletion, and destructive commands.</p></div><span class="coverage-number">04</span></article>
           </div>
+        </section>
+
+        <section class="privacy-section surface-card" id="privacy" aria-labelledby="privacy-heading">
+          <div class="privacy-lock-icon"><svg viewBox="0 0 22 22" aria-hidden="true"><rect x="4" y="9" width="14" height="10" rx="2"/><path d="M7 9V6a4 4 0 1 1 8 0v3m-4 4v2"/></svg></div>
+          <div class="privacy-copy"><p class="eyebrow small-eyebrow">DATA HANDLING</p><h2 id="privacy-heading">Your files stay on your device.</h2><p>Uploaded files and pasted text are scanned in this browser and are not sent to this site or stored. Repository scans read public files directly from GitHub’s API; GitHub may log normal API request metadata. Reports stay in this tab unless you choose to export one.</p></div>
+          <div class="privacy-facts"><span><i></i> No account or database</span><span><i></i> No file uploads</span><span><i></i> No analytics code</span></div>
         </section>
 
         <section class="sandbox-section surface-card" id="sandbox" aria-labelledby="sandbox-heading">
